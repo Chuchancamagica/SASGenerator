@@ -782,14 +782,6 @@ export default function App() {
             </button>
           </nav>
           
-          <button 
-            className="btn btn-secondary" 
-            onClick={() => { setTempApiUrl(apiUrl); setShowSettings(true); }}
-            title="Configurar URL del Servidor"
-            style={{ padding: '6px 12px', fontSize: '13px' }}
-          >
-            Ajustes
-          </button>
         </div>
       </header>
 
@@ -1255,41 +1247,6 @@ export default function App() {
           </div>
         )}
       </main>
-
-      {/* --- MODAL DE CONFIGURACIÓN --- */}
-      {showSettings && (
-        <div className="settings-overlay animate-fade-in" onClick={() => setShowSettings(false)}>
-          <div className="settings-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Configurar Servidor (Hugging Face)</h3>
-              <button className="icon-btn" onClick={() => setShowSettings(false)} style={{ fontSize: '18px' }}>×</button>
-            </div>
-            
-            <div className="form-group">
-              <label>URL del Space de Hugging Face</label>
-              <input 
-                type="text" 
-                value={tempApiUrl} 
-                onChange={(e) => setTempApiUrl(e.target.value)} 
-                placeholder="https://tu-usuario-tu-space.hf.space"
-              />
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px', lineHeight: '1.3' }}>
-                Escribe la URL pública de tu Space de Hugging Face. El Space debe estar configurado como Docker y estar activo.
-                Por defecto, también puedes configurar esta URL mediante la variable de entorno <strong>VITE_API_URL</strong> al desplegar en Vercel.
-              </p>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowSettings(false)}>
-                Cancelar
-              </button>
-              <button className="btn btn-primary" onClick={handleSaveSettings}>
-                Guardar Ajustes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
