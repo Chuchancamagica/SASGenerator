@@ -22,15 +22,28 @@ interface Layer {
   imageUrl?: string;
 }
 
-type TabType = 'remover' | 'meme';
+type TabType = 'remover' | 'meme' | 'downloader';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('meme');
-  const [apiUrl, setApiUrl] = useState<string>(() => {
+  const [apiUrl] = useState<string>(() => {
     return localStorage.getItem('hf_space_url') || import.meta.env.VITE_API_URL || '';
   });
-  const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [tempApiUrl, setTempApiUrl] = useState<string>(apiUrl);
+  const [downloaderUrl] = useState<string>(() => {
+    return localStorage.getItem('hf_downloader_url') || import.meta.env.VITE_DOWNLOADER_API_URL || '';
+  });
+  // --- Estados del Descargador ---
+  const [ytUrl, setYtUrl] = useState<string>('');
+  const [isFetchingFormats, setIsFetchingFormats] = useState<boolean>(false);
+  const [formats, setFormats] = useState<string[]>([]);
+  const [videoTitle, setVideoTitle] = useState<string>('');
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [downloadFormat, setDownloadFormat] = useState<'Video' | 'Audio'>('Video');
+  const [downloadQuality, setDownloadQuality] = useState<string>('Mejor calidad disponible');
+  const [customFileName, setCustomFileName] = useState<string>('');
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadStatus, setDownloadStatus] = useState<string>('');
 
   // --- Estados de Quitar Fondo ---
   const [sourceImage, setSourceImage] = useState<string | null>(null);
@@ -74,12 +87,6 @@ export default function App() {
     startLayerRot: number;
   } | null>(null);
 
-  // Guardar API URL en localStorage
-  const handleSaveSettings = () => {
-    localStorage.setItem('hf_space_url', tempApiUrl);
-    setApiUrl(tempApiUrl);
-    setShowSettings(false);
-  };
 
   // Ajustar la escala del lienzo responsivo
   useEffect(() => {
@@ -176,8 +183,7 @@ export default function App() {
     if (!sourceFile) return;
 
     if (!apiUrl) {
-      setShowSettings(true);
-      alert('Por favor, configura la URL de tu Space de Hugging Face primero.');
+      alert('Por favor, configura la variable de entorno VITE_API_URL.');
       return;
     }
 
@@ -255,6 +261,111 @@ export default function App() {
     setResultImage(null);
     setErrorMsg(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // -------------------------------------------------------------
+  // --- LÓGICA DEL DESCARGADOR (API) ---
+  // -------------------------------------------------------------
+  const handleFetchFormats = async () => {
+    if (!ytUrl.trim()) {
+      setDownloadError('Por favor, ingresa una URL válida.');
+      return;
+    }
+
+    if (!downloaderUrl) {
+      setDownloadError('Configura primero la URL del servidor de descargas en Ajustes.');
+      return;
+    }
+
+    setIsFetchingFormats(true);
+    setDownloadError(null);
+    setFormats([]);
+    setVideoTitle('');
+    setVideoDuration(0);
+
+    try {
+      const cleanApiUrl = downloaderUrl.replace(/\/$/, '');
+      const response = await fetch(`${cleanApiUrl}/fetch-formats?url=${encodeURIComponent(ytUrl)}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Error al conectar con el servidor de descargas.');
+      }
+
+      const data = await response.json();
+      setVideoTitle(data.title || 'Video');
+      setVideoDuration(data.duration || 0);
+      setFormats(data.formats || ['Mejor calidad disponible']);
+      setDownloadQuality('Mejor calidad disponible');
+    } catch (err: any) {
+      setDownloadError(err.message || 'Error al buscar formatos en el servidor.');
+    } finally {
+      setIsFetchingFormats(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!ytUrl.trim()) return;
+
+    if (!downloaderUrl) {
+      setDownloadError('Configura la URL del servidor de descargas en Ajustes.');
+      return;
+    }
+
+    setIsDownloading(true);
+    setDownloadError(null);
+    setDownloadStatus('Conectando con el servidor de descargas...');
+
+    try {
+      const cleanApiUrl = downloaderUrl.replace(/\/$/, '');
+      const downloadEndpoint = `${cleanApiUrl}/download?url=${encodeURIComponent(ytUrl)}` + 
+        `&format_type=${downloadFormat}` + 
+        `&quality=${encodeURIComponent(downloadQuality)}` + 
+        `&custom_name=${encodeURIComponent(customFileName)}`;
+
+      setDownloadStatus('Descargando y convirtiendo en el servidor (esto puede demorar un par de minutos)...');
+      
+      const response = await fetch(downloadEndpoint);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'El servidor falló durante la descarga.');
+      }
+
+      setDownloadStatus('Recibiendo archivo en tu navegador...');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const disposition = response.headers.get('content-disposition');
+      let filename = customFileName.trim() ? customFileName.trim() : 'descarga';
+      const extension = downloadFormat === 'Video' ? '.mp4' : '.mp3';
+      
+      if (disposition && disposition.indexOf('filename=') !== -1) {
+        const matches = /filename="?([^";]+)"?/g.exec(disposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1];
+        } else {
+          filename = filename + extension;
+        }
+      } else {
+        filename = filename + extension;
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setDownloadError(err.message || 'Error al procesar la descarga.');
+    } finally {
+      setIsDownloading(false);
+      setDownloadStatus('');
+    }
   };
 
   // -------------------------------------------------------------
@@ -780,6 +891,12 @@ export default function App() {
             >
               Quitar Fondo
             </button>
+            <button 
+              className={`tab-btn ${activeTab === 'downloader' ? 'active' : ''}`}
+              onClick={() => setActiveTab('downloader')}
+            >
+              Descargador
+            </button>
           </nav>
           
         </div>
@@ -1244,6 +1361,117 @@ export default function App() {
                 </button>
               </div>
             </aside>
+          </div>
+        )}
+
+        {/* --- PESTAÑA: DESCARGADOR --- */}
+        {activeTab === 'downloader' && (
+          <div className="downloader-container animate-fade-in">
+            <div className="downloader-panel">
+              <h2>Descargador de Video/Audio</h2>
+              <p className="downloader-desc">Ingresa un enlace de YouTube para descargar video en formato MP4 o audio en MP3 de alta calidad.</p>
+              
+              <div className="input-row">
+                <input 
+                  type="text" 
+                  className="downloader-input"
+                  placeholder="https://www.youtube.com/watch?v=..." 
+                  value={ytUrl}
+                  onChange={(e) => setYtUrl(e.target.value)}
+                  disabled={isFetchingFormats || isDownloading}
+                />
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleFetchFormats}
+                  disabled={isFetchingFormats || isDownloading || !ytUrl.trim()}
+                >
+                  {isFetchingFormats ? 'Buscando...' : 'Buscar'}
+                </button>
+              </div>
+
+              {downloadError && (
+                <div className="download-error-box">
+                  <div className="error-icon">!</div>
+                  <div className="error-text">{downloadError}</div>
+                </div>
+              )}
+
+              {/* Mostrar metadatos y opciones si se obtuvieron formatos */}
+              {formats.length > 0 && !downloadError && (
+                <div className="downloader-options animate-fade-in" style={{ marginTop: '20px' }}>
+                  <div className="video-metadata">
+                    <span className="metadata-title">Título: {videoTitle}</span>
+                    {videoDuration > 0 && (
+                      <span className="metadata-duration">
+                        Duración: {Math.floor(videoDuration / 60)}:{(videoDuration % 60).toString().padStart(2, '0')}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>Tipo de Formato</label>
+                      <select 
+                        value={downloadFormat} 
+                        onChange={(e) => setDownloadFormat(e.target.value as 'Video' | 'Audio')}
+                        disabled={isDownloading}
+                      >
+                        <option value="Video">Video (MP4)</option>
+                        <option value="Audio">Audio (MP3)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Calidad / Resolución</label>
+                      {downloadFormat === 'Video' ? (
+                        <select 
+                          value={downloadQuality} 
+                          onChange={(e) => setDownloadQuality(e.target.value)}
+                          disabled={isDownloading}
+                        >
+                          {formats.map((fmt) => (
+                            <option key={fmt} value={fmt}>{fmt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <select disabled value="audio_best">
+                          <option value="audio_best">192 kbps (Mejor disponible)</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '15px' }}>
+                    <label>Nombre de archivo personalizado (Opcional)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ej. mi_video_favorito (Dejar vacío para el título original)"
+                      value={customFileName}
+                      onChange={(e) => setCustomFileName(e.target.value)}
+                      disabled={isDownloading}
+                    />
+                  </div>
+
+                  <button 
+                    className="btn btn-accent btn-large" 
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                    style={{ marginTop: '25px', width: '100%', padding: '12px' }}
+                  >
+                    Comenzar Descarga
+                  </button>
+                </div>
+              )}
+
+              {(isFetchingFormats || isDownloading) && (
+                <div className="downloader-loader">
+                  <div className="spinner"></div>
+                  <span className="loader-status">
+                    {isFetchingFormats ? 'Obteniendo resoluciones disponibles...' : downloadStatus}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
