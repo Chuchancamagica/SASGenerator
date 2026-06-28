@@ -22,7 +22,15 @@ TMP_DIR = "/tmp/downloads"
 os.makedirs(TMP_DIR, exist_ok=True)
 
 # El nombre del archivo que subiremos a Hugging Face
-COOKIES_PATH = "cookies.txt"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+COOKIES_PATH = os.path.join(BASE_DIR, "cookies.txt")
+
+if os.path.exists(COOKIES_PATH):
+    print(f"[SASDownloader] COOKIES.TXT ENCONTRADO EN {COOKIES_PATH}")
+    with open(COOKIES_PATH, 'r', encoding='utf-8', errors='ignore') as f:
+        print(f"[SASDownloader] Primera línea del cookie: {f.readline().strip()}")
+else:
+    print(f"[SASDownloader] ATENCION: cookies.txt NO ENCONTRADO EN {COOKIES_PATH}")
 
 @app.get("/")
 def read_root():
