@@ -25,7 +25,7 @@ interface Layer {
 type TabType = 'remover' | 'meme';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('remover');
+  const [activeTab, setActiveTab] = useState<TabType>('meme');
   const [apiUrl, setApiUrl] = useState<string>(() => {
     return localStorage.getItem('hf_space_url') || import.meta.env.VITE_API_URL || '';
   });
@@ -769,16 +769,16 @@ export default function App() {
         <div className="header-actions">
           <nav className="tabs-header">
             <button 
-              className={`tab-btn ${activeTab === 'remover' ? 'active' : ''}`}
-              onClick={() => setActiveTab('remover')}
-            >
-              Quitar Fondo
-            </button>
-            <button 
               className={`tab-btn ${activeTab === 'meme' ? 'active' : ''}`}
               onClick={() => setActiveTab('meme')}
             >
               Generador de Memes
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'remover' ? 'active' : ''}`}
+              onClick={() => setActiveTab('remover')}
+            >
+              Quitar Fondo
             </button>
           </nav>
           
