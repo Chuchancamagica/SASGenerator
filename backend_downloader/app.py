@@ -136,6 +136,31 @@ def diagnose(url: str = Query(...)):
             print(f"FAILED: {str(e)}")
             results["test4"] = f"FAILED: {str(e)}"
 
+        # Test 5: Pytubefix sin OAuth
+        print("\n=== TEST 5: Pytubefix sin OAuth ===")
+        try:
+            from pytubefix import YouTube
+            yt = YouTube(url)
+            print(f"SUCCESS. Title: {yt.title}")
+            # Intentar listar los streams
+            streams = yt.streams
+            print(f"Streams found: {len(streams)}")
+            results["test5"] = "SUCCESS"
+        except Exception as e:
+            print(f"FAILED: {str(e)}")
+            results["test5"] = f"FAILED: {str(e)}"
+
+        # Test 6: Verificar si NodeJS está en el PATH
+        print("\n=== TEST NODEJS PATH ===")
+        import subprocess
+        try:
+            node_version = subprocess.check_output(["node", "-v"], text=True).strip()
+            print(f"NodeJS is installed: {node_version}")
+            results["nodejs"] = f"Installed: {node_version}"
+        except Exception as e:
+            print(f"NodeJS not found in PATH: {str(e)}")
+            results["nodejs"] = f"Not found: {str(e)}"
+
     finally:
         sys.stdout = original_stdout
         sys.stderr = original_stderr
