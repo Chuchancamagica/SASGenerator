@@ -231,7 +231,7 @@ export default function App() {
     const newLayer: Layer = {
       id: `img_${layerCounter}`,
       type: 'image',
-      name: `🖼️ Imagen Recortada ${layerCounter}`,
+      name: `Imagen Recortada ${layerCounter}`,
       x: 100,
       y: 100,
       width: 400,
@@ -264,7 +264,7 @@ export default function App() {
     const newLayer: Layer = {
       id: `txt_${layerCounter}`,
       type: 'text',
-      name: `📝 Texto ${layerCounter}`,
+      name: `Texto ${layerCounter}`,
       x: canvasWidth / 2 - 150,
       y: canvasHeight / 2 - 50,
       width: 300,
@@ -292,7 +292,7 @@ export default function App() {
         const newLayer: Layer = {
           id: `img_${layerCounter}`,
           type: 'image',
-          name: `🖼️ ${files[0].name}`,
+          name: files[0].name,
           x: canvasWidth / 2 - 200,
           y: canvasHeight / 2 - 200,
           width: 400,
@@ -319,7 +319,7 @@ export default function App() {
     e.stopPropagation();
 
     const files = e.dataTransfer.files;
-    if (files && files[0] && files[0].type.startsWith('image/')) {
+    if (files && files[0] && (files[0].type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(files[0].name))) {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       let dropX = canvasWidth / 2 - 200;
       let dropY = canvasHeight / 2 - 200;
@@ -335,7 +335,7 @@ export default function App() {
         const newLayer: Layer = {
           id: `img_${layerCounter}`,
           type: 'image',
-          name: `🖼️ ${files[0].name}`,
+          name: files[0].name,
           x: dropX,
           y: dropY,
           width: 400,
@@ -414,7 +414,7 @@ export default function App() {
         if (updates.text !== undefined && layer.type === 'text') {
           let cleanText = updates.text.replace(/\n/g, ' ');
           if (cleanText.length > 20) cleanText = cleanText.substring(0, 17) + '...';
-          updated.name = `📝 ${cleanText || 'Vacío'}`;
+          updated.name = `Texto: ${cleanText || 'Vacío'}`;
         }
         return updated;
       }
@@ -766,23 +766,23 @@ export default function App() {
               className={`tab-btn ${activeTab === 'remover' ? 'active' : ''}`}
               onClick={() => setActiveTab('remover')}
             >
-              ✂️ Quitar Fondo
+              Quitar Fondo
             </button>
             <button 
               className={`tab-btn ${activeTab === 'meme' ? 'active' : ''}`}
               onClick={() => setActiveTab('meme')}
             >
-              🖼️ Generador de Memes
+              Generador de Memes
             </button>
           </nav>
           
           <button 
-            className="icon-btn" 
+            className="btn btn-secondary" 
             onClick={() => { setTempApiUrl(apiUrl); setShowSettings(true); }}
             title="Configurar URL del Servidor"
-            style={{ fontSize: '20px' }}
+            style={{ padding: '6px 12px', fontSize: '13px' }}
           >
-            ⚙️
+            Ajustes
           </button>
         </div>
       </header>
@@ -813,7 +813,7 @@ export default function App() {
                   <img src={sourceImage} alt="Antes" className="preview-image" />
                   <div className="actions-row">
                     <button className="btn btn-secondary" onClick={handleResetRemover}>
-                      🗑️ Reiniciar
+                      Reiniciar
                     </button>
                     {!resultImage && (
                       <button 
@@ -821,14 +821,14 @@ export default function App() {
                         onClick={handleRemoveBackground}
                         disabled={isProcessing}
                       >
-                        ⚡ Quitar Fondo
+                        Quitar Fondo
                       </button>
                     )}
                   </div>
                 </>
               ) : (
                 <div className="upload-placeholder">
-                  <div className="upload-icon">📤</div>
+                  <div className="upload-icon" style={{ fontSize: '48px', fontWeight: 'bold', color: 'var(--primary)' }}>+</div>
                   <h3>Arrastra tu imagen aquí</h3>
                   <p>o haz clic para buscar en tu dispositivo</p>
                 </div>
@@ -852,16 +852,16 @@ export default function App() {
                   <img src={resultImage} alt="Después" className="preview-image" />
                   <div className="actions-row">
                     <button className="btn btn-secondary" onClick={handleDownloadResult}>
-                      📥 Guardar PNG
+                      Guardar PNG
                     </button>
                     <button className="btn btn-accent" onClick={handleSendToCanvas}>
-                      🎨 Enviar al Editor de Memes →
+                      Enviar al Editor de Memes →
                     </button>
                   </div>
                 </>
               ) : errorMsg ? (
                 <div className="upload-placeholder" style={{ color: 'var(--danger)', padding: '20px' }}>
-                  <div style={{ fontSize: '48px' }}>⚠️</div>
+                  <div style={{ fontSize: '48px', color: 'var(--danger)', fontWeight: 'bold' }}>!</div>
                   <h3>Error al procesar</h3>
                   <p style={{ maxWidth: '350px', fontSize: '13px', marginTop: '10px' }}>{errorMsg}</p>
                   <button className="btn btn-secondary" style={{ marginTop: '15px' }} onClick={() => setErrorMsg(null)}>
@@ -870,7 +870,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="upload-placeholder" style={{ opacity: 0.6 }}>
-                  <div style={{ fontSize: '48px' }}>✨</div>
+                  <div style={{ fontSize: '48px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>...</div>
                   <h3>El resultado aparecerá aquí</h3>
                   <p>Sube una imagen y haz clic en Quitar Fondo</p>
                 </div>
@@ -909,9 +909,16 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="responsive-canvas-container" onMouseDown={handleCanvasContainerMouseDown}>
+              <div 
+                className="responsive-canvas-container" 
+                onMouseDown={handleCanvasContainerMouseDown}
+                onDragOver={handleCanvasDragOver}
+                onDrop={handleCanvasDrop}
+              >
                 <div 
                   className="canvas-outer"
+                  onDragOver={handleCanvasDragOver}
+                  onDrop={handleCanvasDrop}
                   style={{
                     width: `${canvasWidth}px`,
                     height: `${canvasHeight}px`,
@@ -1021,21 +1028,20 @@ export default function App() {
                       );
                     })}
                   </div>
-                </div>
               </div>
             </div>
+          </div>
 
             {/* Barra lateral de control */}
             <aside className="control-sidebar">
-              {/* Acciones principales */}
               <div className="sidebar-section">
                 <span className="section-title">Añadir Capas</span>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button className="btn btn-primary" style={{ flex: 1, padding: '10px' }} onClick={handleAddText}>
-                    📝 Texto
+                    Texto
                   </button>
                   <button className="btn btn-secondary" style={{ flex: 1, padding: '10px' }} onClick={() => layerFileInputRef.current?.click()}>
-                    🖼️ Imagen
+                    Imagen
                   </button>
                 </div>
                 <input 
@@ -1060,7 +1066,7 @@ export default function App() {
                     <span>Color</span>
                   </div>
                   <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={() => bgFileInputRef.current?.click()}>
-                    Upload 🖼️
+                    Subir Imagen
                   </button>
                 </div>
                 <input 
@@ -1082,7 +1088,7 @@ export default function App() {
                 <span className="section-title">Capas ({layers.length})</span>
                 {layers.length === 0 ? (
                   <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', padding: '15px' }}>
-                    No hay capas. ¡Añade texto o imágenes!
+                    No hay capas. Adicione texto o imagenes.
                   </div>
                 ) : (
                   <div className="layer-list">
@@ -1096,14 +1102,14 @@ export default function App() {
                         >
                           <span className="layer-info">{layer.name}</span>
                           <div className="layer-actions" onClick={e => e.stopPropagation()}>
-                            <button className="icon-btn" onClick={() => handleZIndexChange('up', layer.id)} title="Subir (traer al frente)">
-                              ▲
+                            <button className="icon-btn" onClick={() => handleZIndexChange('up', layer.id)} title="Traer al frente" style={{ fontSize: '10px', fontWeight: 'bold' }}>
+                              UP
                             </button>
-                            <button className="icon-btn" onClick={() => handleZIndexChange('down', layer.id)} title="Bajar (enviar al fondo)">
-                              ▼
+                            <button className="icon-btn" onClick={() => handleZIndexChange('down', layer.id)} title="Enviar al fondo" style={{ fontSize: '10px', fontWeight: 'bold' }}>
+                              DOWN
                             </button>
-                            <button className="icon-btn danger" onClick={() => handleDeleteLayer(layer.id)} title="Borrar capa">
-                              🗑️
+                            <button className="icon-btn danger" onClick={() => handleDeleteLayer(layer.id)} title="Borrar capa" style={{ fontSize: '10px', fontWeight: 'bold' }}>
+                              BORRAR
                             </button>
                           </div>
                         </div>
@@ -1228,10 +1234,10 @@ export default function App() {
               {/* Botones de acción del Lienzo */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto', paddingTop: '15px', borderTop: '1px solid var(--border-color)' }}>
                 <button className="btn btn-accent" onClick={handleExportMeme} disabled={layers.length === 0}>
-                  💾 Exportar Meme (PNG)
+                  Exportar Meme (PNG)
                 </button>
                 <button className="btn btn-secondary" onClick={handleResetCanvas}>
-                  🗑️ Limpiar Lienzo
+                  Limpiar Lienzo
                 </button>
               </div>
             </aside>
