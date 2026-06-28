@@ -136,8 +136,55 @@ def diagnose(url: str = Query(...)):
             print(f"FAILED: {str(e)}")
             results["test4"] = f"FAILED: {str(e)}"
 
-        # Test 5: Pytubefix sin OAuth
-        print("\n=== TEST 5: Pytubefix sin OAuth ===")
+        # Test 5: Pytubefix sin OAuth (Parchado con curl_cffi)
+        print("\n=== TEST 5: Pytubefix sin OAuth (Parchado con curl_cffi) ===")
+        import urllib.request
+        original_urlopen = urllib.request.urlopen
+        
+        def patched_urlopen(url, data=None, timeout=None, cafile=None, capath=None, cadefault=False, context=None):
+            import curl_cffi.requests as cffi
+            headers = {}
+            method = "GET"
+            url_str = url
+            
+            if isinstance(url, urllib.request.Request):
+                url_str = url.get_full_url()
+                headers = dict(url.headers)
+                method = url.get_method()
+                data = url.data
+                
+            try:
+                # Usar curl_cffi para saltar el handshake bloqueado
+                r = cffi.request(
+                    method=method,
+                    url=url_str,
+                    headers=headers,
+                    data=data,
+                    timeout=timeout or 30,
+                    impersonate="chrome",
+                    verify=False
+                )
+                
+                class FakeResponse:
+                    def __init__(self, r):
+                        self.r = r
+                    def read(self, amt=None):
+                        return self.r.content
+                    def getcode(self):
+                        return self.r.status_code
+                    def info(self):
+                        import email
+                        headers_str = "\n".join([f"{k}: {v}" for k, v in self.r.headers.items()])
+                        return email.message_from_string(headers_str)
+                    def geturl(self):
+                        return self.r.url
+                        
+                return FakeResponse(r)
+            except Exception as e:
+                # Fallback al urllib original en caso de error
+                return original_urlopen(url, data, timeout, cafile, capath, cadefault, context)
+
+        urllib.request.urlopen = patched_urlopen
         try:
             from pytubefix import YouTube
             yt = YouTube(url)
@@ -149,6 +196,8 @@ def diagnose(url: str = Query(...)):
         except Exception as e:
             print(f"FAILED: {str(e)}")
             results["test5"] = f"FAILED: {str(e)}"
+        finally:
+            urllib.request.urlopen = original_urlopen
 
         # Test 6: curl_cffi directo con verify=False
         print("\n=== TEST 6: curl_cffi directo a YouTube (verify=False) ===")

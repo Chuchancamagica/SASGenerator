@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     build-essential \
     nodejs \
+    libcurl4-openssl-dev \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Configurar usuario con UID 1000 para cumplir las políticas de Hugging Face
