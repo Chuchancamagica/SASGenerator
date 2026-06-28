@@ -33,5 +33,5 @@ USER user
 # Hugging Face expone y escucha en el puerto 7860
 EXPOSE 7860
 
-# Levantar el servidor ASGI
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+# Levantar el servidor ASGI usando el puerto dinámico (para compatibilidad con Railway/Hugging Face)
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-7860}"]
