@@ -150,7 +150,22 @@ def diagnose(url: str = Query(...)):
             print(f"FAILED: {str(e)}")
             results["test5"] = f"FAILED: {str(e)}"
 
-        # Test 6: Verificar si NodeJS está en el PATH
+        # Test 6: curl_cffi directo con verify=False
+        print("\n=== TEST 6: curl_cffi directo a YouTube (verify=False) ===")
+        try:
+            import curl_cffi.requests as cffi
+            resp = cffi.get(
+                url,
+                impersonate="chrome",
+                verify=False
+            )
+            print(f"SUCCESS. Status: {resp.status_code}, Size: {len(resp.text)}")
+            results["test6"] = f"SUCCESS (Status: {resp.status_code}, Size: {len(resp.text)})"
+        except Exception as e:
+            print(f"FAILED: {str(e)}")
+            results["test6"] = f"FAILED: {str(e)}"
+
+        # Test NodeJS: Verificar si NodeJS está en el PATH
         print("\n=== TEST NODEJS PATH ===")
         import subprocess
         try:
