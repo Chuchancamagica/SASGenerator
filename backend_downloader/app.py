@@ -46,7 +46,12 @@ def fetch_formats(url: str = Query(..., description="URL del video de YouTube u 
             'quiet': True,
             'no_warnings': True,
             'nocheckcertificate': True,
-            'impersonate': ImpersonateTarget.from_str('chrome')
+            'impersonate': ImpersonateTarget.from_str('chrome'),
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'tv', '-web', '-mweb', '-web_safari']
+                }
+            }
         }
         
         if os.path.exists(COOKIES_PATH):
@@ -102,7 +107,12 @@ def download_video(
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'impersonate': ImpersonateTarget.from_str('chrome')
+        'impersonate': ImpersonateTarget.from_str('chrome'),
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'tv', '-web', '-mweb', '-web_safari']
+            }
+        }
     }
     
     if os.path.exists(COOKIES_PATH):
@@ -122,7 +132,7 @@ def download_video(
         final_extension = '.mp4'
     else:
         # Configuración de solo audio (MP3 192kbps)
-        ydl_opts['format'] = 'bestaudio/best'
+        ydl_opts['format'] = 'best'
         ydl_opts['postprocessors'] = [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
