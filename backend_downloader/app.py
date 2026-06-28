@@ -36,6 +36,115 @@ else:
 def read_root():
     return {"status": "ready", "service": "SASDownloader Legacy"}
 
+@app.get("/diagnose")
+def diagnose(url: str = Query(...)):
+    import sys
+    import io
+    
+    # Redirigir stdout/stderr para capturar logs internos de yt-dlp
+    output = io.StringIO()
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    sys.stdout = output
+    sys.stderr = output
+    
+    results = {}
+    try:
+        # Test 1: Con cookies y con impersonate, default clients
+        print("=== TEST 1: Chrome impersonate + default clients ===")
+        ydl_opts_1 = {
+            'quiet': False,
+            'no_warnings': False,
+            'nocheckcertificate': True,
+            'impersonate': ImpersonateTarget.from_str('chrome'),
+        }
+        if os.path.exists(COOKIES_PATH):
+            ydl_opts_1['cookiefile'] = COOKIES_PATH
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts_1) as ydl:
+                info = ydl.extract_info(url, download=False)
+                print(f"SUCCESS. Formats found: {len(info.get('formats', []))}")
+                results["test1"] = "SUCCESS"
+        except Exception as e:
+            print(f"FAILED: {str(e)}")
+            results["test1"] = f"FAILED: {str(e)}"
+
+        # Test 2: Con cookies y con impersonate, restricted clients (android, tv, ios)
+        print("\n=== TEST 2: Chrome impersonate + restricted clients (android, ios, tv) ===")
+        ydl_opts_2 = {
+            'quiet': False,
+            'no_warnings': False,
+            'nocheckcertificate': True,
+            'impersonate': ImpersonateTarget.from_str('chrome'),
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'tv']
+                }
+            }
+        }
+        if os.path.exists(COOKIES_PATH):
+            ydl_opts_2['cookiefile'] = COOKIES_PATH
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts_2) as ydl:
+                info = ydl.extract_info(url, download=False)
+                print(f"SUCCESS. Formats found: {len(info.get('formats', []))}")
+                results["test2"] = "SUCCESS"
+        except Exception as e:
+            print(f"FAILED: {str(e)}")
+            results["test2"] = f"FAILED: {str(e)}"
+
+        # Test 3: SIN cookies, con impersonate, restricted clients
+        print("\n=== TEST 3: Chrome impersonate + restricted clients, NO COOKIES ===")
+        ydl_opts_3 = {
+            'quiet': False,
+            'no_warnings': False,
+            'nocheckcertificate': True,
+            'impersonate': ImpersonateTarget.from_str('chrome'),
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'tv']
+                }
+            }
+        }
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts_3) as ydl:
+                info = ydl.extract_info(url, download=False)
+                print(f"SUCCESS. Formats found: {len(info.get('formats', []))}")
+                results["test3"] = "SUCCESS"
+        except Exception as e:
+            print(f"FAILED: {str(e)}")
+            results["test3"] = f"FAILED: {str(e)}"
+
+        # Test 4: SIN cookies, SIN impersonate (urllib default), restricted clients
+        print("\n=== TEST 4: Urllib default + restricted clients, NO COOKIES ===")
+        ydl_opts_4 = {
+            'quiet': False,
+            'no_warnings': False,
+            'nocheckcertificate': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'tv']
+                }
+            }
+        }
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts_4) as ydl:
+                info = ydl.extract_info(url, download=False)
+                print(f"SUCCESS. Formats found: {len(info.get('formats', []))}")
+                results["test4"] = "SUCCESS"
+        except Exception as e:
+            print(f"FAILED: {str(e)}")
+            results["test4"] = f"FAILED: {str(e)}"
+
+    finally:
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        
+    return {
+        "results": results,
+        "logs": output.getvalue()
+    }
+
 @app.get("/fetch-formats")
 def fetch_formats(url: str = Query(..., description="URL del video de YouTube u otro portal")):
     """
